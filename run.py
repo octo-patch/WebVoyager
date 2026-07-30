@@ -231,12 +231,42 @@ def exec_action_scroll(info, web_eles, driver_task, args, obs_info):
     time.sleep(3)
 
 
+def build_openai_client(args):
+    """Build the OpenAI client.
+
+    The client is OpenAI-compatible, so providers that expose an
+    OpenAI-compatible endpoint can be selected with --api_provider or by
+    passing --api_base_url directly. When no base_url is configured the
+    default OpenAI endpoint is used, preserving the original behaviour.
+    """
+    base_url = args.api_base_url
+    if not base_url and args.api_provider:
+        provider_base_urls = {
+            # OpenAI-compatible endpoint for the global region.
+            "minimax": "https://api.minimax.io/v1",
+            # OpenAI-compatible endpoint for the China region.
+            "minimax_cn": "https://api.minimaxi.com/v1",
+        }
+        base_url = provider_base_urls.get(args.api_provider)
+
+    client_kwargs = {"api_key": args.api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    return OpenAI(**client_kwargs)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--test_file', type=str, default='data/test.json')
     parser.add_argument('--max_iter', type=int, default=5)
     parser.add_argument("--api_key", default="key", type=str, help="YOUR_OPENAI_API_KEY")
     parser.add_argument("--api_model", default="gpt-4-vision-preview", type=str, help="api model name")
+    parser.add_argument("--api_provider", default=None, type=str,
+                        help="OpenAI-compatible provider to use (e.g. minimax for the global region, "
+                             "minimax_cn for the China region). When set, the matching base_url is used.")
+    parser.add_argument("--api_base_url", default=None, type=str,
+                        help="Override the OpenAI-compatible base_url, e.g. "
+                             "https://api.minimax.io/v1 or https://api.minimaxi.com/v1.")
     parser.add_argument("--output_dir", type=str, default='results')
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max_attached_imgs", type=int, default=1)
@@ -253,8 +283,10 @@ def main():
 
     args = parser.parse_args()
 
-    # OpenAI client
-    client = OpenAI(api_key=args.api_key)
+    # OpenAI-compatible client (OpenAI by default; set --api_provider or
+    # --api_base_url to target another OpenAI-compatible provider such as
+    # MiniMax global https://api.minimax.io/v1 or China https://api.minimaxi.com/v1)
+    client = build_openai_client(args)
 
     options = driver_config(args)
 
