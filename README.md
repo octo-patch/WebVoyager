@@ -131,7 +131,7 @@ General:
 - `--download_dir`: Sometimes Agent downloads PDF files for analysis.
 
 Model:
-- `--api_model`: The agent that receives observations and makes decisions. In our experiments, we use `gpt-4-vision-preview`. For text-only setting, models without vision input can be used, such as `gpt-4-1106-preview`.
+- `--api_model`: The agent that receives observations and makes decisions. In our experiments, we use `gpt-4-vision-preview`. For MiniMax, use `MiniMax-M3` with the default screenshot mode or `MiniMax-M2.7` with `--text_only`.
 - `--api_provider`: Optional. Select an OpenAI-compatible provider so the matching base_url is used. Supported values are `minimax` for the global region (`https://api.minimax.io/v1`) and `minimax_cn` for the China region (`https://api.minimaxi.com/v1`). When omitted, the default OpenAI endpoint is used.
 - `--api_base_url`: Optional. Override the OpenAI-compatible base_url directly (takes precedence over `--api_provider`). Use it to point the agent at any OpenAI-compatible endpoint.
 - `seed`: This feature is in Beta according to the OpenAI [Document](https://platform.openai.com/docs/api-reference/chat). 

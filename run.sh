@@ -14,5 +14,6 @@ nohup python -u run.py \
 #   --api_key YOUR_MINIMAX_API_KEY \
 #   --api_provider minimax \
 #   --api_model MiniMax-M3 \
+# Use MiniMax-M2.7 together with --text_only for text-only runs.
 # For the China region endpoint use --api_provider minimax_cn instead.
 # Alternatively, pass --api_base_url https://api.minimax.io/v1 directly.
