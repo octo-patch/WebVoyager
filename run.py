@@ -121,12 +121,12 @@ def call_gpt4v_api(args, openai_client, messages):
             if not args.text_only:
                 logging.info('Calling gpt4v API...')
                 openai_response = openai_client.chat.completions.create(
-                    model=args.api_model, messages=messages, max_tokens=1000, seed=args.seed
+                    model=args.api_model, messages=messages, max_tokens=args.max_tokens, seed=args.seed
                 )
             else:
                 logging.info('Calling gpt4 API...')
                 openai_response = openai_client.chat.completions.create(
-                    model=args.api_model, messages=messages, max_tokens=1000, seed=args.seed, timeout=30
+                    model=args.api_model, messages=messages, max_tokens=args.max_tokens, seed=args.seed, timeout=30
                 )
 
             prompt_tokens = openai_response.usage.prompt_tokens
@@ -158,6 +158,12 @@ def call_gpt4v_api(args, openai_client, messages):
         if retry_times == 10:
             logging.info('Retrying too many times')
             return None, None, True, None
+
+
+def append_assistant_response(messages, response):
+    message = response.choices[0].message
+    messages.append(message.model_dump(exclude_none=True))
+    return message.content
 
 
 def exec_action_click(info, web_ele, driver_task):
@@ -231,6 +237,18 @@ def exec_action_scroll(info, web_eles, driver_task, args, obs_info):
     time.sleep(3)
 
 
+MINIMAX_MODELS = ("MiniMax-M3.1-Flash", "MiniMax-M3")
+MINIMAX_BASE_URLS = {
+    "minimax": "https://api.minimax.io/v1",
+    "minimax_cn": "https://api.minimax.cn/v1",
+}
+
+
+def api_base_url(args):
+    return (args.api_base_url or MINIMAX_BASE_URLS.get(args.api_provider)
+            or os.environ.get("OPENAI_BASE_URL"))
+
+
 def build_openai_client(args):
     """Build the OpenAI client.
 
@@ -239,15 +257,7 @@ def build_openai_client(args):
     passing --api_base_url directly. When no base_url is configured the
     default OpenAI endpoint is used, preserving the original behaviour.
     """
-    base_url = args.api_base_url
-    if not base_url and args.api_provider:
-        provider_base_urls = {
-            # OpenAI-compatible endpoint for the global region.
-            "minimax": "https://api.minimax.io/v1",
-            # OpenAI-compatible endpoint for the China region.
-            "minimax_cn": "https://api.minimaxi.com/v1",
-        }
-        base_url = provider_base_urls.get(args.api_provider)
+    base_url = api_base_url(args)
 
     client_kwargs = {"api_key": args.api_key}
     if base_url:
@@ -255,18 +265,23 @@ def build_openai_client(args):
     return OpenAI(**client_kwargs)
 
 
-def main():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--test_file', type=str, default='data/test.json')
     parser.add_argument('--max_iter', type=int, default=5)
     parser.add_argument("--api_key", default="key", type=str, help="YOUR_OPENAI_API_KEY")
-    parser.add_argument("--api_model", default="gpt-4-vision-preview", type=str, help="api model name")
+    parser.add_argument("--api_model", default=None, type=str,
+                        help="api model name; MiniMax defaults to MiniMax-M3.1-Flash, "
+                             "with MiniMax-M3 also available. Explicit model names are preserved.")
+    parser.add_argument("--max_tokens", default=None, type=int,
+                        help="Output token budget, including thinking: defaults to 32768 for "
+                             "current MiniMax models and 1000 otherwise.")
     parser.add_argument("--api_provider", default=None, type=str,
                         help="OpenAI-compatible provider to use (e.g. minimax for the global region, "
                              "minimax_cn for the China region). When set, the matching base_url is used.")
     parser.add_argument("--api_base_url", default=None, type=str,
                         help="Override the OpenAI-compatible base_url, e.g. "
-                             "https://api.minimax.io/v1 or https://api.minimaxi.com/v1.")
+                             "https://api.minimax.io/v1 or https://api.minimax.cn/v1.")
     parser.add_argument("--output_dir", type=str, default='results')
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max_attached_imgs", type=int, default=1)
@@ -281,11 +296,22 @@ def main():
     parser.add_argument("--window_height", type=int, default=768)  # for headless mode, there is no address bar
     parser.add_argument("--fix_box_color", action='store_true')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    direct_minimax = (api_base_url(args) or "").rstrip("/") in (
+        *MINIMAX_BASE_URLS.values(), "https://api.minimaxi.com/v1")
+    if args.api_model is None:
+        args.api_model = MINIMAX_MODELS[0] if direct_minimax else "gpt-4-vision-preview"
+    if args.max_tokens is None:
+        args.max_tokens = 32768 if direct_minimax and args.api_model in MINIMAX_MODELS else 1000
+    return args
+
+
+def main():
+    args = parse_args()
 
     # OpenAI-compatible client (OpenAI by default; set --api_provider or
     # --api_base_url to target another OpenAI-compatible provider such as
-    # MiniMax global https://api.minimax.io/v1 or China https://api.minimaxi.com/v1)
+    # MiniMax global https://api.minimax.io/v1 or China https://api.minimax.cn/v1)
     client = build_openai_client(args)
 
     options = driver_config(args)
@@ -409,8 +435,7 @@ def main():
                 accumulate_completion_token += completion_tokens
                 logging.info(f'Accumulate Prompt Tokens: {accumulate_prompt_token}; Accumulate Completion Tokens: {accumulate_completion_token}')
                 logging.info('API call complete...')
-            gpt_4v_res = openai_response.choices[0].message.content
-            messages.append({'role': 'assistant', 'content': gpt_4v_res})
+            gpt_4v_res = append_assistant_response(messages, openai_response)
 
 
             # remove the rects on the website

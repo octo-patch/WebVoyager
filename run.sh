@@ -13,7 +13,8 @@ nohup python -u run.py \
 # --api_key and --api_model lines above with, e.g.:
 #   --api_key YOUR_MINIMAX_API_KEY \
 #   --api_provider minimax \
-#   --api_model MiniMax-M3 \
-# Use MiniMax-M2.7 together with --text_only for text-only runs.
+#   --api_model MiniMax-M3.1-Flash \
+# MiniMax-M3 is also available. Both models support --text_only.
+# Omitting --api_model at a direct MiniMax endpoint defaults to MiniMax-M3.1-Flash.
 # For the China region endpoint use --api_provider minimax_cn instead.
 # Alternatively, pass --api_base_url https://api.minimax.io/v1 directly.
