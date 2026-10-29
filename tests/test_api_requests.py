@@ -52,7 +52,7 @@ class ApiRequestTests(unittest.TestCase):
         return args, payload, result[3]
 
     def test_region_defaults_and_both_observation_modes(self):
-        for provider, host in (("minimax", "api.minimax.io"), ("minimax_cn", "api.minimax.cn")):
+        for provider, host in (("minimax", "api.minimax.io"), ("minimax_cn", "api.minimaxi.com")):
             for mode in ([], ["--text_only"]):
                 with self.subTest(provider=provider, mode=mode):
                     _, body, _ = self.request(["--api_provider", provider, *mode])
@@ -77,8 +77,7 @@ class ApiRequestTests(unittest.TestCase):
                     self.assertEqual(body["seed"], 42)
 
     def test_base_url_and_environment_defaults(self):
-        for base_url in ("https://api.minimax.io/v1/", "https://api.minimax.cn/v1",
-                         "https://api.minimaxi.com/v1"):
+        for base_url in ("https://api.minimax.io/v1/", "https://api.minimaxi.com/v1"):
             for environment in (False, True):
                 with self.subTest(base_url=base_url, environment=environment):
                     with patch.dict(os.environ, {"OPENAI_BASE_URL": base_url} if environment else {}):

@@ -240,7 +240,7 @@ def exec_action_scroll(info, web_eles, driver_task, args, obs_info):
 MINIMAX_MODELS = ("MiniMax-M3.1-Flash", "MiniMax-M3")
 MINIMAX_BASE_URLS = {
     "minimax": "https://api.minimax.io/v1",
-    "minimax_cn": "https://api.minimax.cn/v1",
+    "minimax_cn": "https://api.minimaxi.com/v1",
 }
 
 
@@ -281,7 +281,7 @@ def parse_args(argv=None):
                              "minimax_cn for the China region). When set, the matching base_url is used.")
     parser.add_argument("--api_base_url", default=None, type=str,
                         help="Override the OpenAI-compatible base_url, e.g. "
-                             "https://api.minimax.io/v1 or https://api.minimax.cn/v1.")
+                             "https://api.minimax.io/v1 or https://api.minimaxi.com/v1.")
     parser.add_argument("--output_dir", type=str, default='results')
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max_attached_imgs", type=int, default=1)
@@ -297,8 +297,7 @@ def parse_args(argv=None):
     parser.add_argument("--fix_box_color", action='store_true')
 
     args = parser.parse_args(argv)
-    direct_minimax = (api_base_url(args) or "").rstrip("/") in (
-        *MINIMAX_BASE_URLS.values(), "https://api.minimaxi.com/v1")
+    direct_minimax = (api_base_url(args) or "").rstrip("/") in MINIMAX_BASE_URLS.values()
     if args.api_model is None:
         args.api_model = MINIMAX_MODELS[0] if direct_minimax else "gpt-4-vision-preview"
     if args.max_tokens is None:
@@ -311,7 +310,7 @@ def main():
 
     # OpenAI-compatible client (OpenAI by default; set --api_provider or
     # --api_base_url to target another OpenAI-compatible provider such as
-    # MiniMax global https://api.minimax.io/v1 or China https://api.minimax.cn/v1)
+    # MiniMax global https://api.minimax.io/v1 or China https://api.minimaxi.com/v1)
     client = build_openai_client(args)
 
     options = driver_config(args)
